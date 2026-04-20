@@ -1142,8 +1142,25 @@
     });
   }
 
-  function amapNavUrl(lng, lat, name) {
-    return `https://uri.amap.com/navigation?to=${lng},${lat},${encodeURIComponent(name)}&mode=walking&coordinate=gcj02&callnative=1`;
+  function openAmap(lng, lat, name) {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const native = isIOS
+      ? `iosamap://navi?sourceApplication=travel&lat=${lat}&lon=${lng}&dev=0&style=2`
+      : `amap://navi?sourceApplication=travel&lat=${lat}&lon=${lng}&dev=0&style=2`;
+    const web = `https://uri.amap.com/navigation?to=${lng},${lat},${encodeURIComponent(name)}&mode=walking&coordinate=gcj02&callnative=1`;
+
+    let appOpened = false;
+    function onHide() {
+      appOpened = true;
+      document.removeEventListener('visibilitychange', onHide);
+    }
+    document.addEventListener('visibilitychange', onHide);
+
+    window.location.href = native;
+    setTimeout(() => {
+      document.removeEventListener('visibilitychange', onHide);
+      if (!appOpened) window.open(web, '_blank');
+    }, 2000);
   }
 
   function initDayMap(idx) {
@@ -1168,11 +1185,13 @@
       L.marker([s.lat, s.lng], { icon: makeDotIcon(data.color, s.e) })
         .addTo(m)
         .bindPopup(
-          `<b style="font-size:14px;">${s.e} ${s.n}</b><br>
-           <a href="${amapNavUrl(s.lng, s.lat, s.n)}" target="_blank"
-              style="display:inline-block;margin-top:8px;background:#1677ff;color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;">
-             🧭 高德導航
-           </a>`,
+          `<b style="font-size:14px;">${s.e} ${s.n}</b>
+           <div style="text-align:center;margin-top:8px;">
+             <a href="javascript:void(0)" onclick="openAmap(${s.lng}, ${s.lat}, '${s.n.replace(/'/g, "\\'")}')"
+                style="display:inline-block;background:#1677ff;color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;">
+               🧭 高德導航
+             </a>
+           </div>`,
           { maxWidth: 210 }
         );
     });
